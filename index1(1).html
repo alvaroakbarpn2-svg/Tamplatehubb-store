@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TemplateHub — Temukan Template Website & Prompt Terbaik</title>
+
+<!-- ================================================================
+     FIREBASE REALTIME DATABASE
+     Semua perubahan data (tambah/edit/hapus template, kategori, status)
+     otomatis tersinkron secara realtime lintas perangkat/browser.
+     ================================================================ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBpV9dalvG-nYJd2hE1DBpNe-5eMThdO9w",
+    authDomain: "tamplate-d3be9.firebaseapp.com",
+    databaseURL: "https://tamplate-d3be9-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "tamplate-d3be9",
+    storageBucket: "tamplate-d3be9.firebasestorage.app",
+    messagingSenderId: "1093190140908",
+    appId: "1:1093190140908:web:3051e2832ce5ab45edf6c9",
+    measurementId: "G-D176GSC8GX"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const fbDb = getDatabase(fbApp);
+  const fbDataRef = ref(fbDb, "templatehub");
+
+  // Diekspos ke scope global supaya bisa dipakai oleh script utama (non-module)
+  window.firebaseDB = {
+    listen(callback){
+      onValue(fbDataRef, (snapshot)=> callback(snapshot.val()), (err)=> console.warn("Firebase onValue error:", err));
+    },
+    save(data){
+      return set(fbDataRef, data);
+    }
+  };
+</script>
+
+<style>
+:root{
+  --bg:#0a0a0f;--bg-2:#101018;--card:#13131d;--card-hover:#181826;
+  --border:#232334;--border-hover:#3a3a55;
+  --text:#e8e8f0;--text-dim:#8b8ba0;--text-faint:#5a5a70;
+  --purple:#a855f7;--purple-glow:rgba(168,85,247,.35);
+  --blue:#3b82f6;--blue-glow:rgba(59,130,246,.35);
+  --grad:linear-gradient(135deg,#a855f7 0%,#6366f1 50%,#3b82f6 100%);
+  --grad-soft:linear-gradient(135deg,rgba(168,85,247,.15),rgba(59,130,246,.15));
+  --radius:16px;--radius-sm:10px;--shadow:0 8px 32px rgba(0,0,0,.4);
+  --transition:all .3s cubic-bezier(.4,0,.2,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 15% 10%,rgba(168,85,247,.08),transparent 40%),radial-gradient(circle at 85% 90%,rgba(59,130,246,.08),transparent 40%);pointer-events:none;z-index:0}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg-2)}
+::-webkit-scrollbar-thumb{background:var(--border-hover);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--purple)}
+::selection{background:var(--purple);color:#fff}
+img{max-width:100%;display:block}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:inherit;outline:none}
+
+/* NAVBAR */
+.navbar{position:sticky;top:0;z-index:100;background:rgba(10,10,15,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:var(--transition)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 24px;height:68px;display:flex;align-items:center;gap:24px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.25rem;letter-spacing:-.02em;text-decoration:none;color:var(--text);cursor:pointer;flex-shrink:0}
+.logo-icon{width:34px;height:34px;border-radius:9px;background:var(--grad);display:grid;place-items:center;font-size:1rem;font-weight:900;color:#fff;box-shadow:0 0 18px var(--purple-glow)}
+.logo-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:4px;margin-left:8px}
+.nav-link{padding:8px 14px;border-radius:9px;font-size:.9rem;font-weight:500;color:var(--text-dim);transition:var(--transition);white-space:nowrap;cursor:pointer}
+.nav-link:hover{color:var(--text);background:var(--card)}
+.nav-link.active{color:var(--text);background:var(--card)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex:1;justify-content:flex-end}
+.nav-search{position:relative;max-width:280px;width:100%}
+.nav-search input{width:100%;padding:9px 14px 9px 38px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.88rem;transition:var(--transition)}
+.nav-search input:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-glow)}
+.nav-search input::placeholder{color:var(--text-faint)}
+.nav-search .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:.9rem;pointer-events:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 18px;border-radius:10px;font-size:.88rem;font-weight:600;transition:var(--transition);white-space:nowrap;text-decoration:none;cursor:pointer}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:0 4px 16px var(--purple-glow)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px var(--purple-glow)}
+.btn-ghost{background:var(--card);border:1px solid var(--border);color:var(--text)}
+.btn-ghost:hover{border-color:var(--border-hover);background:var(--card-hover)}
+.btn-sm{padding:7px 14px;font-size:.82rem}
+.menu-toggle{display:none;font-size:1.4rem;padding:6px;color:var(--text)}
+
+/* HERO */
+.hero{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:80px 24px 60px;text-align:center}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;background:var(--grad-soft);border:1px solid var(--border);font-size:.78rem;font-weight:600;color:var(--purple);margin-bottom:24px;animation:fadeUp .6s ease both}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--purple);box-shadow:0 0 8px var(--purple);animation:pulse 2s infinite}
+.hero h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;line-height:1.1;letter-spacing:-.03em;margin-bottom:20px;animation:fadeUp .6s .1s ease both}
+.hero h1 .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:clamp(.95rem,2vw,1.15rem);color:var(--text-dim);max-width:620px;margin:0 auto 36px;animation:fadeUp .6s .2s ease both}
+.hero-search{max-width:600px;margin:0 auto 24px;position:relative;animation:fadeUp .6s .3s ease both}
+.hero-search input{width:100%;padding:18px 56px 18px 52px;background:var(--card);border:1px solid var(--border);border-radius:16px;color:var(--text);font-size:1rem;transition:var(--transition);box-shadow:var(--shadow)}
+.hero-search input:focus{border-color:var(--purple);box-shadow:0 0 0 4px var(--purple-glow),var(--shadow)}
+.hero-search input::placeholder{color:var(--text-faint)}
+.hero-search .search-icon{position:absolute;left:20px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:1.1rem}
+.hero-search .search-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:11px 20px;border-radius:11px;background:var(--grad);color:#fff;font-weight:600;font-size:.88rem;transition:var(--transition)}
+.hero-search .search-btn:hover{transform:translateY(-50%) scale(1.03)}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fadeUp .6s .4s ease both}
+.hero-stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin-top:56px;animation:fadeUp .6s .5s ease both}
+.hero-stat{text-align:center}
+.hero-stat .num{font-size:1.8rem;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero-stat .lbl{font-size:.82rem;color:var(--text-dim)}
+
+/* SECTIONS */
+.section{max-width:1400px;margin:0 auto;padding:40px 24px 60px;position:relative;z-index:1}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.section-head h2{font-size:clamp(1.4rem,3vw,2rem);font-weight:800;letter-spacing:-.02em}
+.section-head p{color:var(--text-dim);font-size:.9rem;margin-top:4px}
+
+/* FILTER */
+.filter-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;margin-bottom:24px}
+.filter-row::-webkit-scrollbar{display:none}
+.chip{padding:8px 16px;border-radius:999px;background:var(--card);border:1px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-dim);white-space:nowrap;transition:var(--transition)}
+.chip:hover{border-color:var(--border-hover);color:var(--text)}
+.chip.active{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 4px 14px var(--purple-glow)}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:var(--transition);cursor:pointer;display:flex;flex-direction:column;animation:fadeUp .5s ease both}
+.card:hover{transform:translateY(-4px);border-color:var(--border-hover);box-shadow:0 12px 40px rgba(0,0,0,.4),0 0 0 1px var(--purple-glow)}
+.card-thumb{position:relative;aspect-ratio:16/10;overflow:hidden;background:var(--bg-2);border-bottom:1px solid var(--border)}
+.card-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.card:hover .card-thumb img{transform:scale(1.06)}
+.card-badge{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:7px;background:rgba(10,10,15,.85);backdrop-filter:blur(8px);font-size:.7rem;font-weight:700;color:var(--purple);border:1px solid var(--border)}
+.card-fav{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:8px;background:rgba(10,10,15,.85);backdrop-filter:blur(8px);display:grid;place-items:center;font-size:.85rem;border:1px solid var(--border);transition:var(--transition)}
+.card-fav:hover{background:var(--purple);border-color:var(--purple)}
+.card-body{padding:16px;display:flex;flex-direction:column;flex:1}
+.card-title{font-size:1.05rem;font-weight:700;margin-bottom:6px;letter-spacing:-.01em}
+.card-desc{font-size:.84rem;color:var(--text-dim);margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tag{padding:3px 9px;border-radius:6px;background:var(--bg-2);border:1px solid var(--border);font-size:.68rem;font-weight:600;color:var(--text-dim)}
+.card-actions{display:flex;gap:8px;margin-top:auto}
+.card-actions .btn{flex:1;padding:9px 10px;font-size:.78rem}
+.status-badge{position:absolute;bottom:12px;left:12px;padding:3px 10px;border-radius:6px;font-size:.68rem;font-weight:700;backdrop-filter:blur(8px)}
+.status-favorit{background:rgba(168,85,247,.9);color:#fff}
+.status-jarang{background:rgba(107,114,128,.9);color:#fff}
+.status-bagus{background:rgba(59,130,246,.9);color:#fff}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--text-dim);grid-column:1/-1}
+.empty-icon{font-size:3rem;margin-bottom:12px;opacity:.5}
+.empty h3{font-size:1.2rem;color:var(--text);margin-bottom:6px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(5,5,10,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;animation:fadeIn .25s ease}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:640px;max-height:90vh;overflow-y:auto;animation:scaleIn .3s cubic-bezier(.4,0,.2,1);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg-2);z-index:2}
+.modal-head h3{font-size:1.2rem;font-weight:700;letter-spacing:-.01em}
+.modal-head .sub{font-size:.82rem;color:var(--text-dim);margin-top:2px}
+.modal-close{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:var(--card);border:1px solid var(--border);display:grid;place-items:center;font-size:1.1rem;color:var(--text-dim);transition:var(--transition)}
+.modal-close:hover{background:var(--card-hover);color:var(--text);border-color:var(--border-hover)}
+.modal-body{padding:24px}
+.modal-body .field{margin-bottom:20px}
+.modal-body .field:last-child{margin-bottom:0}
+.field-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);margin-bottom:8px;display:block}
+.field-value{font-size:.9rem;color:var(--text);line-height:1.7}
+.prompt-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.82rem;line-height:1.7;color:#c8c8d8;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto}
+.tech-list{display:flex;gap:8px;flex-wrap:wrap}
+.tech-pill{padding:5px 12px;border-radius:8px;background:var(--grad-soft);border:1px solid var(--border);font-size:.78rem;font-weight:600;color:var(--text)}
+.modal-actions{display:flex;gap:10px;padding:18px 24px;border-top:1px solid var(--border);flex-wrap:wrap;position:sticky;bottom:0;background:var(--bg-2)}
+
+/* PREVIEW */
+.preview-screen{position:fixed;inset:0;z-index:2000;background:var(--bg);display:none;flex-direction:column;animation:fadeIn .3s ease}
+.preview-screen.open{display:flex}
+.preview-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.preview-bar .title{font-weight:700;font-size:.95rem;margin-right:auto}
+.device-switch{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:10px;border:1px solid var(--border)}
+.device-btn{padding:6px 14px;border-radius:7px;font-size:.8rem;font-weight:600;color:var(--text-dim);transition:var(--transition)}
+.device-btn.active{background:var(--grad);color:#fff}
+.device-btn:hover:not(.active){color:var(--text)}
+.preview-stage{flex:1;overflow:auto;padding:24px;display:flex;justify-content:center;align-items:flex-start;background:var(--bg);background-image:radial-gradient(circle at 50% 0%,rgba(168,85,247,.05),transparent 60%)}
+.preview-frame{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .35s cubic-bezier(.4,0,.2,1),height .35s cubic-bezier(.4,0,.2,1);width:100%;max-width:1280px;height:calc(100vh - 140px);border:1px solid var(--border)}
+.preview-frame.tablet{max-width:768px}
+.preview-frame.mobile{max-width:390px;height:calc(100vh - 140px)}
+.preview-frame iframe{width:100%;height:100%;border:0;background:#fff}
+.preview-frame .fallback{width:100%;height:100%;display:grid;place-items:center;background:var(--bg-2);color:var(--text-dim);text-align:center;padding:40px}
+.preview-frame .fallback .big{font-size:3rem;margin-bottom:12px}
+.preview-frame .fallback h3{color:var(--text);margin-bottom:6px}
+
+/* DETAIL */
+.detail-screen{position:fixed;inset:0;z-index:1500;background:var(--bg);display:none;flex-direction:column;animation:fadeIn .3s ease}
+.detail-screen.open{display:flex}
+.detail-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-2);border-bottom:1px solid var(--border)}
+.detail-bar .title{font-weight:700;font-size:.95rem;margin-right:auto}
+.detail-scroll{flex:1;overflow-y:auto;padding:32px 24px}
+.detail-inner{max-width:1100px;margin:0 auto}
+.detail-hero{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);margin-bottom:28px;aspect-ratio:16/9;background:var(--bg-2);position:relative}
+.detail-hero img{width:100%;height:100%;object-fit:cover}
+.detail-hero .overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,15,.9),transparent 60%);display:flex;align-items:flex-end;padding:24px}
+.detail-hero h1{font-size:clamp(1.4rem,4vw,2.2rem);font-weight:800;letter-spacing:-.02em}
+.detail-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px}
+.detail-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:20px}
+.detail-card h3{font-size:1rem;font-weight:700;margin-bottom:14px;letter-spacing:-.01em}
+.detail-card p{font-size:.9rem;color:var(--text-dim);line-height:1.7}
+.feature-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.feature-list li{display:flex;gap:10px;font-size:.9rem;color:var(--text-dim);align-items:flex-start}
+.feature-list li::before{content:'✓';color:var(--purple);font-weight:800;flex-shrink:0}
+.meta-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:.88rem}
+.meta-row:last-child{border-bottom:none}
+.meta-row .k{color:var(--text-faint)}
+.meta-row .v{color:var(--text);font-weight:600;text-align:right}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:3000;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none}
+.toast{padding:12px 22px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:.88rem;font-weight:600;box-shadow:0 12px 40px rgba(0,0,0,.5);display:flex;align-items:center;gap:10px;animation:slideUp .35s cubic-bezier(.4,0,.2,1);pointer-events:auto}
+.toast.success{border-color:rgba(168,85,247,.5);box-shadow:0 12px 40px rgba(168,85,247,.25)}
+.toast.success .ic{color:var(--purple)}
+.toast.error{border-color:rgba(239,68,68,.5)}
+.toast.error .ic{color:#ef4444}
+.toast .ic{font-size:1.1rem}
+
+/* FOOTER */
+.footer{border-top:1px solid var(--border);margin-top:40px;padding:40px 24px;text-align:center;position:relative;z-index:1}
+.footer p{color:var(--text-faint);font-size:.85rem}
+.footer .brand{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:700}
+
+/* ADMIN */
+.admin-screen{position:fixed;inset:0;z-index:2500;background:var(--bg);display:none;flex-direction:column;animation:fadeIn .3s ease}
+.admin-screen.open{display:flex}
+.admin-bar{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--bg-2);border-bottom:1px solid var(--border)}
+.admin-bar .title{font-weight:800;font-size:1rem;margin-right:auto;display:flex;align-items:center;gap:10px}
+.admin-bar .title .lock{font-size:1.1rem}
+.admin-scroll{flex:1;overflow-y:auto;padding:24px}
+.admin-inner{max-width:1200px;margin:0 auto}
+.admin-tabs{display:flex;gap:6px;margin-bottom:24px;background:var(--card);padding:6px;border-radius:12px;border:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.admin-tabs::-webkit-scrollbar{display:none}
+.admin-tab{padding:10px 18px;border-radius:8px;font-size:.85rem;font-weight:600;color:var(--text-dim);transition:var(--transition);white-space:nowrap}
+.admin-tab:hover{color:var(--text)}
+.admin-tab.active{background:var(--grad);color:#fff}
+.admin-panel{display:none}
+.admin-panel.active{display:block;animation:fadeUp .4s ease}
+.admin-form{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+.admin-form h3{font-size:1.1rem;font-weight:700;margin-bottom:20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:.8rem;font-weight:600;color:var(--text-dim)}
+.form-group input,.form-group textarea,.form-group select{padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.88rem;transition:var(--transition);width:100%}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-glow)}
+.form-group textarea{resize:vertical;min-height:90px;font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.6}
+.form-group select{cursor:pointer}
+.form-group select option{background:var(--bg-2)}
+.form-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.admin-table{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.admin-table-head{display:grid;grid-template-columns:60px 1fr 120px 130px 160px;gap:12px;padding:14px 18px;background:var(--bg-2);border-bottom:1px solid var(--border);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint)}
+.admin-row{display:grid;grid-template-columns:60px 1fr 120px 130px 160px;gap:12px;padding:14px 18px;align-items:center;border-bottom:1px solid var(--border);transition:var(--transition)}
+.admin-row:last-child{border-bottom:none}
+.admin-row:hover{background:var(--card-hover)}
+.admin-row .thumb{width:48px;height:32px;border-radius:6px;object-fit:cover;background:var(--bg-2);border:1px solid var(--border)}
+.admin-row .name{font-weight:600;font-size:.88rem}
+.admin-row .cat{font-size:.78rem;color:var(--text-dim);padding:4px 8px;background:var(--bg-2);border-radius:6px;display:inline-block;width:fit-content}
+.admin-row .status-select{padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:.75rem;cursor:pointer;width:100%}
+.admin-row .status-select:focus{border-color:var(--purple)}
+.admin-row .actions{display:flex;gap:6px}
+.icon-btn{width:32px;height:32px;border-radius:8px;background:var(--bg-2);border:1px solid var(--border);display:grid;place-items:center;font-size:.85rem;transition:var(--transition);color:var(--text-dim)}
+.icon-btn:hover{background:var(--card-hover);color:var(--text);border-color:var(--border-hover)}
+.icon-btn.danger:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#ef4444}
+.icon-btn.edit:hover{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.4);color:var(--purple)}
+.cat-list{display:flex;flex-direction:column;gap:10px}
+.cat-item{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--bg-2);border:1px solid var(--border);border-radius:12px}
+.cat-item .cat-name{font-weight:600;flex:1}
+.cat-item .cat-count{font-size:.78rem;color:var(--text-faint);background:var(--card);padding:3px 10px;border-radius:6px}
+.cat-add{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.cat-add input{flex:1;min-width:200px;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.88rem}
+.cat-add input:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-glow)}
+.admin-note{padding:12px 16px;border-radius:10px;background:var(--grad-soft);border:1px solid var(--border);font-size:.82rem;color:var(--text-dim);margin-bottom:20px;display:flex;gap:10px;align-items:flex-start}
+.admin-note .ic{color:var(--purple);font-size:1rem;flex-shrink:0}
+
+/* ========== UPLOAD GALLERY (BARU) ========== */
+.upload-zone{
+  border:2px dashed var(--border);border-radius:14px;
+  padding:28px 20px;text-align:center;cursor:pointer;
+  transition:var(--transition);background:var(--bg);
+  position:relative;overflow:hidden;
+}
+.upload-zone:hover{border-color:var(--purple);background:var(--grad-soft)}
+.upload-zone.dragover{border-color:var(--purple);background:var(--grad-soft);transform:scale(1.01)}
+.upload-zone .uz-icon{font-size:2.2rem;margin-bottom:10px;display:block;opacity:.8}
+.upload-zone .uz-title{font-weight:700;font-size:.92rem;margin-bottom:4px;color:var(--text)}
+.upload-zone .uz-sub{font-size:.78rem;color:var(--text-faint)}
+.upload-zone input[type=file]{display:none}
+
+.thumb-preview{
+  margin-top:14px;position:relative;
+  border-radius:12px;overflow:hidden;
+  border:1px solid var(--border);
+  aspect-ratio:16/10;background:var(--bg-2);
+  display:none;
+}
+.thumb-preview.show{display:block;animation:scaleIn .3s ease}
+.thumb-preview img{width:100%;height:100%;object-fit:cover}
+.thumb-preview .remove-btn{
+  position:absolute;top:10px;right:10px;
+  width:34px;height:34px;border-radius:9px;
+  background:rgba(239,68,68,.9);color:#fff;
+  display:grid;place-items:center;font-size:1rem;
+  font-weight:700;transition:var(--transition);
+  border:1px solid rgba(255,255,255,.2);
+}
+.thumb-preview .remove-btn:hover{background:#ef4444;transform:scale(1.08)}
+.thumb-preview .info{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:10px 14px;background:linear-gradient(to top,rgba(0,0,0,.9),transparent);
+  font-size:.75rem;color:#fff;display:flex;justify-content:space-between;
+}
+
+/* GALLERY PICKER */
+.gallery-picker{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
+  gap:10px;margin-top:14px;
+  max-height:260px;overflow-y:auto;padding:4px;
+}
+.gallery-picker .gp-empty{
+  grid-column:1/-1;text-align:center;padding:24px;
+  color:var(--text-faint);font-size:.82rem;
+}
+.gallery-item{
+  aspect-ratio:16/10;border-radius:9px;overflow:hidden;
+  border:2px solid var(--border);cursor:pointer;
+  transition:var(--transition);position:relative;background:var(--bg-2);
+}
+.gallery-item:hover{border-color:var(--border-hover);transform:scale(1.04)}
+.gallery-item.selected{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-glow)}
+.gallery-item img{width:100%;height:100%;object-fit:cover}
+.gallery-item .del{
+  position:absolute;top:4px;right:4px;width:22px;height:22px;
+  border-radius:6px;background:rgba(239,68,68,.9);color:#fff;
+  display:grid;place-items:center;font-size:.7rem;font-weight:700;
+  opacity:0;transition:var(--transition);
+}
+.gallery-item:hover .del{opacity:1}
+.gallery-item .del:hover{background:#ef4444}
+
+.tab-mini{
+  display:flex;gap:4px;background:var(--bg);padding:4px;
+  border-radius:9px;border:1px solid var(--border);margin-bottom:12px;
+  width:fit-content;
+}
+.tab-mini button{
+  padding:7px 14px;border-radius:6px;font-size:.78rem;font-weight:600;
+  color:var(--text-dim);transition:var(--transition);
+}
+.tab-mini button.active{background:var(--grad);color:#fff}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+/* RESPONSIVE */
+@media (max-width:1024px){.detail-grid{grid-template-columns:1fr}}
+@media (max-width:900px){
+  .nav-links{display:none}
+  .menu-toggle{display:grid;place-items:center}
+  .nav-search{max-width:200px}
+  .form-grid{grid-template-columns:1fr}
+  .admin-table-head{display:none}
+  .admin-row{grid-template-columns:1fr;gap:8px;padding:16px;border-bottom:1px solid var(--border)}
+  .admin-row .thumb{width:100%;height:120px}
+  .admin-row .actions{justify-content:flex-end}
+}
+@media (max-width:640px){
+  .nav-inner{padding:0 16px;height:60px;gap:12px}
+  .nav-search{display:none}
+  .hero{padding:48px 16px 40px}
+  .hero-stats{gap:24px;margin-top:40px}
+  .section{padding:24px 16px 40px}
+  .grid{grid-template-columns:1fr;gap:16px}
+  .modal{max-height:95vh}
+  .modal-head,.modal-body,.modal-actions{padding-left:18px;padding-right:18px}
+  .preview-stage{padding:12px}
+  .preview-frame{height:calc(100vh - 120px)}
+  .preview-bar{padding:10px 12px}
+  .preview-bar .title{font-size:.85rem;width:100%;order:-1}
+  .detail-scroll{padding:20px 16px}
+  .admin-scroll{padding:16px}
+  .toast-wrap{bottom:16px;left:16px;right:16px;transform:none}
+  .toast{width:100%;justify-content:center}
+  .section-head{flex-direction:column;align-items:flex-start}
+}
+@media (max-width:380px){
+  .hero h1{font-size:1.7rem}
+  .card-actions{flex-direction:column}
+}
+.mobile-menu{display:none;position:fixed;top:60px;left:0;right:0;background:var(--bg-2);border-bottom:1px solid var(--border);padding:16px;z-index:99;flex-direction:column;gap:6px;animation:fadeUp .3s ease}
+.mobile-menu.open{display:flex}
+.mobile-menu .nav-link{width:100%;text-align:left;padding:12px 16px}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a class="logo" onclick="goHome()">
+      <div class="logo-icon">T</div>
+      <span class="logo-text">TemplateHub</span>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link active" onclick="goHome()">Home</a>
+      <a class="nav-link" onclick="scrollToTemplates()">Template</a>
+      <a class="nav-link" onclick="scrollToFilter()">Kategori</a>
+    </div>
+    <div class="nav-right">
+      <div class="nav-search">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="navSearch" placeholder="Cari template... (ketik ADMINSUKASUKA)">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="scrollToTemplates()">+ Submit Template</button>
+      <button class="menu-toggle" onclick="toggleMobileMenu()">☰</button>
+    </div>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a class="nav-link" onclick="goHome();toggleMobileMenu()">Home</a>
+  <a class="nav-link" onclick="scrollToTemplates();toggleMobileMenu()">Template</a>
+  <a class="nav-link" onclick="scrollToFilter();toggleMobileMenu()">Kategori</a>
+</div>
+
+<!-- HERO -->
+<header class="hero" id="home">
+  <div class="hero-badge"><span class="dot"></span> Platform Template Terlengkap</div>
+  <h1>Temukan <span class="grad">Template Website</span><br>& Prompt Terbaik</h1>
+  <p>Jelajahi koleksi template website siap pakai beserta prompt pembuatannya. Preview langsung, salin prompt, dan mulai proyekmu dalam hitungan detik.</p>
+  <div class="hero-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="heroSearch" placeholder="Cari template, kategori, atau teknologi...">
+    <button class="search-btn" onclick="performSearch()">Cari</button>
+  </div>
+  <div class="hero-cta">
+    <button class="btn btn-primary" onclick="scrollToTemplates()">Jelajahi Template →</button>
+    <button class="btn btn-ghost" onclick="scrollToFilter()">Lihat Kategori</button>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num" id="statCount">10+</div><div class="lbl">Template</div></div>
+    <div class="hero-stat"><div class="num" id="statCat">10</div><div class="lbl">Kategori</div></div>
+    <div class="hero-stat"><div class="num">100%</div><div class="lbl">Gratis</div></div>
+  </div>
+</header>
+
+<!-- TEMPLATE LIST -->
+<section class="section" id="templates">
+  <div class="section-head">
+    <div>
+      <h2>Daftar Template</h2>
+      <p id="resultInfo">Menampilkan semua template</p>
+    </div>
+  </div>
+  <div class="filter-row" id="filterRow"></div>
+  <div class="grid" id="templateGrid"></div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>© 2024 <span class="brand">TemplateHub</span> — Temukan Template Website & Prompt Terbaik</p>
+</footer>
+
+<!-- MODAL PROMPT -->
+<div class="modal-overlay" id="promptModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3 id="pmTitle">Nama Template</h3>
+        <div class="sub" id="pmSub">Kategori</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('promptModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <span class="field-label">Deskripsi</span>
+        <div class="field-value" id="pmDesc"></div>
+      </div>
+      <div class="field">
+        <span class="field-label">Prompt Lengkap</span>
+        <div class="prompt-box" id="pmPrompt"></div>
+      </div>
+      <div class="field">
+        <span class="field-label">Teknologi</span>
+        <div class="tech-list" id="pmTech"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="pmCopyBtn" onclick="copyPromptFromModal()">📋 Salin Prompt</button>
+      <button class="btn btn-ghost" onclick="closeModal('promptModal')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div class="preview-screen" id="previewScreen">
+  <div class="preview-bar">
+    <button class="btn btn-ghost btn-sm" onclick="closePreview()">← Kembali</button>
+    <span class="title" id="pvTitle">Preview Template</span>
+    <div class="device-switch">
+      <button class="device-btn active" data-device="desktop" onclick="setDevice('desktop')">🖥 Desktop</button>
+      <button class="device-btn" data-device="tablet" onclick="setDevice('tablet')">📱 Tablet</button>
+      <button class="device-btn" data-device="mobile" onclick="setDevice('mobile')">📱 Mobile</button>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openPreviewFullscreen()">⛶ Fullscreen</button>
+  </div>
+  <div class="preview-stage">
+    <div class="preview-frame" id="previewFrame"></div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div class="detail-screen" id="detailScreen">
+  <div class="detail-bar">
+    <button class="btn btn-ghost btn-sm" onclick="closeDetail()">← Kembali</button>
+    <span class="title" id="dtTitle">Detail Template</span>
+  </div>
+  <div class="detail-scroll">
+    <div class="detail-inner" id="detailContent"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="admin-screen" id="adminScreen">
+  <div class="admin-bar">
+    <span class="title"><span class="lock">🔐</span> Admin Panel — TemplateHub</span>
+    <button class="btn btn-ghost btn-sm" onclick="closeAdmin()">← Keluar</button>
+  </div>
+  <div class="admin-scroll">
+    <div class="admin-inner">
+      <div class="admin-note">
+        <span class="ic">ℹ️</span>
+        <div>Panel admin rahasia. Akses dengan mengetik <strong>ADMINSUKASUKA</strong> di kolom pencarian.</div>
+      </div>
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="switchAdminTab('templates', event)">📦 Kelola Template</button>
+        <button class="admin-tab" onclick="switchAdminTab('status', event)">⭐ Status Template</button>
+        <button class="admin-tab" onclick="switchAdminTab('categories', event)">🏷️ Kategori</button>
+      </div>
+
+      <!-- Tab: Kelola Template -->
+      <div class="admin-panel active" id="panel-templates">
+        <div class="admin-form">
+          <h3 id="formTitle">➕ Tambah Template Baru</h3>
+          <form id="templateForm" onsubmit="saveTemplate(event)">
+            <input type="hidden" id="editId">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nama Template *</label>
+                <input type="text" id="fName" placeholder="Contoh: Marketplace Modern" required>
+              </div>
+              <div class="form-group">
+                <label>Kategori *</label>
+                <select id="fCategory" required></select>
+              </div>
+              <div class="form-group full">
+                <label>Deskripsi Template *</label>
+                <textarea id="fDesc" placeholder="Deskripsi singkat template..." required style="min-height:70px"></textarea>
+              </div>
+              <div class="form-group full">
+                <label>Link Preview / Website (opsional)</label>
+                <input type="url" id="fPreviewUrl" placeholder="https://contoh.com atau kosongkan untuk pakai HTML di bawah">
+              </div>
+              <div class="form-group full">
+                <label>HTML Preview (opsional)</label>
+                <textarea id="fPreviewHtml" placeholder="<html>... kode HTML template ...</html>" style="min-height:120px"></textarea>
+              </div>
+              <div class="form-group full">
+                <label>Prompt Lengkap *</label>
+                <textarea id="fPrompt" placeholder="PROMPT TEMPLATE..." required style="min-height:140px"></textarea>
+              </div>
+              <div class="form-group full">
+                <label>Teknologi (pisahkan dengan koma)</label>
+                <input type="text" id="fTech" placeholder="HTML, CSS, JavaScript" value="HTML, CSS, JavaScript">
+              </div>
+
+              <!-- ========== UPLOAD GALLERY (BARU) ========== -->
+              <div class="form-group full">
+                <label>Thumbnail Template</label>
+                
+                <div class="tab-mini">
+                  <button type="button" class="active" id="tabUploadBtn" onclick="switchThumbTab('upload')">📸 Upload</button>
+                  <button type="button" id="tabGalleryBtn" onclick="switchThumbTab('gallery')">🖼️ Galeri</button>
+                  <button type="button" id="tabAutoBtn" onclick="switchThumbTab('auto')">🎨 Auto</button>
+                </div>
+
+                <!-- Tab Upload -->
+                <div id="thumbTab-upload">
+                  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('thumbFileInput').click()">
+                    <span class="uz-icon">📤</span>
+                    <div class="uz-title">Klik untuk pilih gambar</div>
+                    <div class="uz-sub">atau tarik & lepas • JPG, PNG, WEBP • Maks 5MB</div>
+                    <input type="file" id="thumbFileInput" accept="image/*" onchange="handleThumbFile(event)">
+                  </div>
+                </div>
+
+                <!-- Tab Galeri -->
+                <div id="thumbTab-gallery" style="display:none">
+                  <div style="font-size:.78rem;color:var(--text-faint);margin-bottom:8px">Pilih dari gambar yang pernah di-upload:</div>
+                  <div class="gallery-picker" id="galleryPicker"></div>
+                </div>
+
+                <!-- Tab Auto -->
+                <div id="thumbTab-auto" style="display:none">
+                  <div style="font-size:.82rem;color:var(--text-dim);margin-bottom:10px">Generate thumbnail otomatis berdasarkan nama template.</div>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="applyAutoThumb()">🎨 Generate Sekarang</button>
+                </div>
+
+                <!-- Preview -->
+                <div class="thumb-preview" id="thumbPreview">
+                  <img id="thumbPreviewImg" alt="Preview">
+                  <button type="button" class="remove-btn" onclick="clearThumb()" title="Hapus">✕</button>
+                  <div class="info">
+                    <span id="thumbInfoName">thumbnail.jpg</span>
+                    <span id="thumbInfoSize">0 KB</span>
+                  </div>
+                </div>
+
+                <input type="hidden" id="fThumb" value="">
+              </div>
+              <!-- ========== END UPLOAD ========== -->
+
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="submitBtn">💾 Simpan Template</button>
+              <button type="button" class="btn btn-ghost" onclick="resetForm()">↺ Reset</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-table">
+          <div class="admin-table-head">
+            <div>Preview</div>
+            <div>Nama</div>
+            <div>Kategori</div>
+            <div>Status</div>
+            <div>Aksi</div>
+          </div>
+          <div id="adminTemplateList"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Status -->
+      <div class="admin-panel" id="panel-status">
+        <div class="admin-note">
+          <span class="ic">⭐</span>
+          <div>Atur status: <strong>Paling Disukai</strong>, <strong>Jarang Dipakai</strong>, atau <strong>Sangat Bagus</strong>.</div>
+        </div>
+        <div class="admin-table">
+          <div class="admin-table-head">
+            <div>Preview</div><div>Nama</div><div>Kategori</div><div>Status</div><div>Aksi</div>
+          </div>
+          <div id="adminStatusList"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Kategori -->
+      <div class="admin-panel" id="panel-categories">
+        <div class="admin-form">
+          <h3>🏷️ Kelola Kategori</h3>
+          <div class="cat-add">
+            <input type="text" id="newCatInput" placeholder="Nama kategori baru...">
+            <button class="btn btn-primary" onclick="addCategory()">+ Tambah Kategori</button>
+          </div>
+          <div class="cat-list" id="catList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ================================================================
+   DATA
+   ================================================================ */
+const DEFAULT_CATEGORIES = ['Marketplace','E-Commerce','Portfolio','Landing Page','Dashboard','Game','AI','SaaS','Blog','Agency'];
+
+const DEFAULT_TEMPLATES = [
+  {
+    id:1,name:"Marketplace Modern",category:"Marketplace",
+    description:"Template marketplace modern dan responsive dengan fitur pencarian, filter produk, keranjang belanja, dan halaman detail produk.",
+    thumbnail:"https://images.unsplash.com/photo-1557821552-17105176677c?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"favorit",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#f8fafc}header{background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff;padding:16px 32px;display:flex;justify-content:space-between}.logo{font-weight:800;font-size:1.2rem}.hero{text-align:center;padding:60px 20px;background:linear-gradient(135deg,#faf5ff,#eff6ff)}.hero h1{font-size:2.5rem;color:#1e1b4b}.btn{background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff;padding:12px 28px;border:none;border-radius:10px;font-weight:600;margin-top:16px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;padding:40px 32px;max-width:1200px;margin:0 auto}.card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.06)}.card img{width:100%;height:150px;object-fit:cover;background:#e2e8f0}.card-body{padding:16px}.card h3{font-size:1rem;color:#1e1b4b}.price{color:#a855f7;font-weight:700;margin-top:8px}</style></head><body><header><div class="logo">🛒 MarketHub</div><nav>Home | Produk | Keranjang</nav></header><div class="hero"><h1>Marketplace Modern</h1><p>Temukan produk terbaik dari penjual terpercaya</p><button class="btn">Mulai Belanja</button></div><div class="grid"><div class="card"><img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400"><div class="card-body"><h3>Smart Watch</h3><div class="price">Rp 1.299.000</div></div></div><div class="card"><img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"><div class="card-body"><h3>Headphone</h3><div class="price">Rp 899.000</div></div></div><div class="card"><img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400"><div class="card-body"><h3>Sneakers</h3><div class="price">Rp 750.000</div></div></div></div></body></html>`,
+    prompt:`Buatkan template website marketplace modern dengan spesifikasi:\n\nSTRUKTUR:\n- Navbar dengan logo, menu navigasi, search bar, ikon keranjang\n- Hero section dengan headline, deskripsi, CTA button\n- Grid produk responsive dengan card produk\n- Footer dengan informasi\n\nDESAIN:\n- Warna: gradient purple-blue (#a855f7, #3b82f6)\n- Font: system-ui, sans-serif\n- Border radius: 14px\n- Hover effect: card terangkat dengan shadow purple\n\nTEKNOLOGI: HTML, CSS, JavaScript\nFITUR: Pencarian produk, filter kategori, keranjang belanja, halaman detail produk.`
+  },
+  {
+    id:2,name:"Toko Online",category:"E-Commerce",
+    description:"Template toko online lengkap dengan katalog produk, halaman checkout, dan manajemen keranjang belanja.",
+    thumbnail:"https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"bagus",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#fff}.top{background:#1e1b4b;color:#fff;text-align:center;padding:8px;font-size:.8rem}header{padding:16px 40px;display:flex;justify-content:space-between;border-bottom:1px solid #eee}.logo{font-weight:800;color:#a855f7}.hero{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:60px 40px;background:#faf5ff;align-items:center}.hero h1{font-size:2.5rem;color:#1e1b4b}.btn{background:#a855f7;color:#fff;padding:14px 32px;border:none;border-radius:30px;font-weight:600;margin-top:16px;cursor:pointer}.hero img{width:100%;border-radius:20px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1100px;margin:40px auto;padding:0 40px}.card img{width:100%;height:200px;object-fit:cover;border-radius:14px}.card h3{color:#1e1b4b;margin-top:8px}.price{color:#a855f7;font-weight:700}</style></head><body><div class="top">🚚 Gratis ongkir untuk pembelian di atas Rp 500.000</div><header><div class="logo">ShopKu</div><nav>Home | Kategori | Promo | Kontak</nav></header><div class="hero"><div><h1>Koleksi Terbaru Musim Ini</h1><p style="margin-top:12px;color:#64748b">Temukan gaya terbaikmu</p><button class="btn">Belanja Sekarang</button></div><img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600"></div><div class="grid"><div class="card"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400"><h3>Kaos Premium</h3><div class="price">Rp 149.000</div></div><div class="card"><img src="https://images.unsplash.com/photo-1542272604-787c3835535d?w=400"><h3>Celana Jeans</h3><div class="price">Rp 299.000</div></div><div class="card"><img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400"><h3>Tas Kulit</h3><div class="price">Rp 450.000</div></div></div></body></html>`,
+    prompt:`Buatkan template toko online dengan spesifikasi:\n\nSTRUKTUR:\n- Top bar promo\n- Navbar: logo, kategori, promo, kontak\n- Hero: grid 2 kolom (teks + gambar)\n- Section produk populer grid 3 kolom\n- Footer\n\nDESAIN:\n- Warna: ungu (#a855f7) dan dark navy (#1e1b4b)\n- Border radius: 14-30px\n\nTEKNOLOGI: HTML, CSS, JavaScript\nFITUR: Katalog, filter, keranjang, checkout.`
+  },
+  {
+    id:3,name:"Landing Page",category:"Landing Page",
+    description:"Template landing page profesional untuk produk atau jasa dengan section hero, fitur, testimoni, dan CTA.",
+    thumbnail:"https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"favorit",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#0a0a0f;color:#fff}header{padding:20px 40px;display:flex;justify-content:space-between}.logo{font-weight:800;background:linear-gradient(135deg,#a855f7,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.hero{text-align:center;padding:100px 20px 60px}.hero h1{font-size:3.5rem;max-width:800px;margin:0 auto 20px;background:linear-gradient(135deg,#fff,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.hero p{color:#94a3b8;max-width:500px;margin:0 auto 32px}.btn{background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff;padding:16px 36px;border:none;border-radius:12px;font-weight:700;box-shadow:0 8px 32px rgba(168,85,247,.4);cursor:pointer}.features{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:60px auto;padding:0 20px}.feat{background:#13131d;border:1px solid #232334;padding:32px;border-radius:16px;text-align:center}.feat .icon{font-size:2rem;margin-bottom:16px}.feat p{color:#94a3b8;font-size:.9rem}</style></head><body><header><div class="logo">✦ Nova</div><nav>Fitur | Harga | Testimoni</nav></header><div class="hero"><h1>Bangun Produk Impianmu Lebih Cepat</h1><p>Platform all-in-one untuk tim modern.</p><button class="btn">Mulai Gratis →</button></div><div class="features"><div class="feat"><div class="icon">⚡</div><h3>Cepat</h3><p>Performa tinggi</p></div><div class="feat"><div class="icon">🔒</div><h3>Aman</h3><p>Keamanan enterprise</p></div><div class="feat"><div class="icon">🚀</div><h3>Skalabel</h3><p>Tumbuh tanpa batas</p></div></div></body></html>`,
+    prompt:`Buatkan template landing page modern:\n\nSTRUKTUR:\n- Navbar: logo gradient, menu\n- Hero: headline besar gradient, CTA\n- Section fitur: grid 3 kolom\n- Testimoni, CTA, Footer\n\nDESAIN:\n- Dark mode: #0a0a0f\n- Aksen gradient purple-blue\n- Card: #13131d, border #232334\n\nTEKNOLOGI: HTML, CSS, JavaScript\nFITUR: Smooth scroll, animasi fade-up, responsive.`
+  },
+  {
+    id:4,name:"Portfolio",category:"Portfolio",
+    description:"Template portfolio minimalis untuk desainer, developer, atau fotografer dengan galeri karya.",
+    thumbnail:"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"jarang",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#0f0f14;color:#fff}.container{max-width:900px;margin:0 auto;padding:60px 24px}.profile{text-align:center;margin-bottom:60px}.profile img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #a855f7;margin-bottom:20px}.profile h1{font-size:2.5rem}.profile p{color:#94a3b8}.works h2{font-size:1.5rem;margin-bottom:24px;border-left:4px solid #a855f7;padding-left:16px}.work-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}.work{background:#18181f;border-radius:14px;overflow:hidden}.work img{width:100%;height:180px;object-fit:cover}.work-info{padding:16px}.work-info p{color:#94a3b8;font-size:.85rem;margin-top:4px}</style></head><body><div class="container"><div class="profile"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200"><h1>Arya Pratama</h1><p>UI/UX Designer & Frontend Developer</p></div><div class="works"><h2>Karya Terbaru</h2><div class="work-grid"><div class="work"><img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400"><div class="work-info"><h3>Dashboard Analytics</h3><p>Web App Design</p></div></div><div class="work"><img src="https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=400"><div class="work-info"><h3>Brand Identity</h3><p>Visual Design</p></div></div></div></div></div></body></html>`,
+    prompt:`Buatkan template portfolio minimalis:\n\nSTRUKTUR:\n- Profile: foto bulat, nama, profesi\n- Karya: grid 2 kolom\n- Kontak, Footer\n\nDESAIN:\n- Dark: #0f0f14\n- Aksen ungu #a855f7\n- Card: #18181f, radius 14px\n\nTEKNOLOGI: HTML, CSS, JavaScript`
+  },
+  {
+    id:5,name:"Dashboard Admin",category:"Dashboard",
+    description:"Template dashboard admin modern dengan sidebar, statistik card, grafik, dan tabel data.",
+    thumbnail:"https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"bagus",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#0a0a0f;color:#fff;display:flex;min-height:100vh}.sidebar{width:220px;background:#13131d;border-right:1px solid #232334;padding:24px 16px}.sidebar .logo{font-weight:800;color:#a855f7;margin-bottom:32px}.menu a{display:block;padding:10px 14px;border-radius:8px;color:#94a3b8;text-decoration:none;margin-bottom:4px}.menu a.active{background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff}.main{flex:1;padding:24px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}.stat{background:#13131d;border:1px solid #232334;border-radius:14px;padding:20px}.stat .lbl{color:#94a3b8;font-size:.8rem}.stat .val{font-size:1.6rem;font-weight:800}.stat .val.p{color:#a855f7}.chart{background:#13131d;border:1px solid #232334;border-radius:14px;padding:24px;height:200px;display:flex;align-items:flex-end;gap:12px}.bar{flex:1;background:linear-gradient(to top,#a855f7,#3b82f6);border-radius:6px 6px 0 0}</style></head><body><div class="sidebar"><div class="logo">⚡ AdminHub</div><div class="menu"><a class="active">📊 Dashboard</a><a>📦 Produk</a><a>👥 Users</a><a>⚙️ Settings</a></div></div><div class="main"><h1>Dashboard</h1><div class="stats"><div class="stat"><div class="lbl">Revenue</div><div class="val p">Rp 48.2M</div></div><div class="stat"><div class="lbl">Orders</div><div class="val">1,284</div></div><div class="stat"><div class="lbl">Customers</div><div class="val">3,642</div></div><div class="stat"><div class="lbl">Conversion</div><div class="val">4.8%</div></div></div><div class="chart"><div class="bar" style="height:60%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:45%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:70%"></div></div></div></body></html>`,
+    prompt:`Buatkan template dashboard admin:\n\nSTRUKTUR:\n- Sidebar: logo, menu\n- Main: header, stats card 4 kolom, grafik\n\nDESAIN:\n- Dark: #0a0a0f\n- Sidebar: #13131d\n- Grafik gradient purple-blue\n\nTEKNOLOGI: HTML, CSS, JavaScript`
+  },
+  {
+    id:6,name:"Website Game",category:"Game",
+    description:"Template website game dengan tampilan bold, section hero, daftar game, dan sistem leaderboard.",
+    thumbnail:"https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"favorit",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#0a0014;color:#fff}header{padding:20px 40px;display:flex;justify-content:space-between}.logo{font-weight:900;color:#ff006e;text-shadow:0 0 20px #ff006e}.hero{text-align:center;padding:80px 20px;background:radial-gradient(circle at 50% 50%,rgba(168,85,247,.3),transparent 70%)}.hero h1{font-size:4rem;font-weight:900;background:linear-gradient(135deg,#ff006e,#a855f7,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.hero p{color:#c4b5fd;margin-bottom:32px}.btn{background:linear-gradient(135deg,#ff006e,#a855f7);color:#fff;padding:16px 40px;border:none;border-radius:8px;font-weight:800;text-transform:uppercase;cursor:pointer}.games{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1000px;margin:40px auto;padding:0 20px}.game{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:3/4}.game img{width:100%;height:100%;object-fit:cover}.game .overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,0,20,.95),transparent 60%);display:flex;flex-direction:column;justify-content:flex-end;padding:16px}</style></head><body><header><div class="logo">🎮 NEXUS</div><nav>Home | Games | Leaderboard</nav></header><div class="hero"><h1>ENTER THE NEXUS</h1><p>Bergabung dengan jutaan pemain</p><button class="btn">Play Now</button></div><div class="games"><div class="game"><img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400"><div class="overlay"><h3>Shadow Strike</h3></div></div><div class="game"><img src="https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=400"><div class="overlay"><h3>Dragon Realm</h3></div></div><div class="game"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400"><div class="overlay"><h3>Turbo Rush</h3></div></div></div></body></html>`,
+    prompt:`Buatkan template website game:\n\nSTRUKTUR:\n- Navbar: logo neon\n- Hero: judul gradient neon\n- Grid game 3 kolom\n- Leaderboard, News\n\nDESAIN:\n- Background: #0a0014\n- Aksen neon pink/purple/blue\n\nTEKNOLOGI: HTML, CSS, JavaScript`
+  },
+  {
+    id:7,name:"Website AI",category:"AI",
+    description:"Template website AI dengan tampilan futuristik, fitur chatbot, dan showcase model AI.",
+    thumbnail:"https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"bagus",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#050510;color:#fff}header{padding:20px 40px;display:flex;justify-content:space-between}.logo{font-weight:800;background:linear-gradient(135deg,#06b6d4,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.hero{text-align:center;padding:100px 20px 60px}.hero h1{font-size:3.5rem;font-weight:800;background:linear-gradient(135deg,#06b6d4,#a855f7,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px}.hero p{color:#94a3b8;max-width:600px;margin:0 auto 32px}.chatbox{max-width:600px;margin:0 auto;background:#13131d;border:1px solid #232334;border-radius:16px;padding:20px}.chatbox .msg{background:#0a0a0f;border-radius:10px;padding:12px;border-left:3px solid #06b6d4;margin-bottom:10px;font-size:.9rem}.chatbox .input{display:flex;gap:10px;margin-top:16px}.chatbox input{flex:1;padding:12px;background:#0a0a0f;border:1px solid #232334;border-radius:10px;color:#fff}.chatbox button{background:linear-gradient(135deg,#06b6d4,#a855f7);color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:600;cursor:pointer}</style></head><body><header><div class="logo">◈ NeuralAI</div><nav>Fitur | Model | Harga</nav></header><div class="hero"><h1>Kecerdasan Buatan untuk Semua</h1><p>Platform AI powerful untuk bisnis dan kreator.</p><div class="chatbox"><div class="msg">Halo! Saya asisten AI. Ada yang bisa dibantu?</div><div class="input"><input placeholder="Tanyakan sesuatu..."><button>Kirim</button></div></div></div></body></html>`,
+    prompt:`Buatkan template website AI:\n\nSTRUKTUR:\n- Navbar: logo gradient\n- Hero: headline gradient, chatbox\n- Section fitur AI, showcase model, pricing\n\nDESAIN:\n- Background: #050510\n- Aksen cyan/purple/blue\n- Chatbox border kiri cyan\n\nTEKNOLOGI: HTML, CSS, JavaScript`
+  },
+  {
+    id:8,name:"Website SaaS",category:"SaaS",
+    description:"Template website SaaS dengan pricing table, fitur unggulan, testimoni, dan integrasi pembayaran.",
+    thumbnail:"https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"favorit",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#f8fafc;color:#1e293b}header{padding:20px 40px;display:flex;justify-content:space-between;background:#fff;border-bottom:1px solid #e2e8f0;align-items:center}.logo{font-weight:800;color:#6366f1}.btn{background:#6366f1;color:#fff;padding:10px 24px;border:none;border-radius:8px;font-weight:600;cursor:pointer}.hero{text-align:center;padding:80px 20px 60px;background:linear-gradient(180deg,#eef2ff,#fff)}.hero h1{font-size:3rem;font-weight:800;margin-bottom:16px}.hero p{color:#64748b;max-width:500px;margin:0 auto}.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:40px auto;padding:0 20px}.plan{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;text-align:center}.plan.featured{background:#6366f1;color:#fff;transform:scale(1.05);box-shadow:0 20px 60px rgba(99,102,241,.3)}.plan .price{font-size:2.5rem;font-weight:800;margin:16px 0}.plan ul{list-style:none;margin:24px 0;text-align:left}.plan li{padding:8px 0;font-size:.9rem}.plan li::before{content:'✓ ';color:#6366f1;font-weight:800}.plan.featured li::before{color:#c7d2fe}.plan button{width:100%;padding:12px;border-radius:10px;border:1px solid #6366f1;background:transparent;color:#6366f1;font-weight:600;cursor:pointer}.plan.featured button{background:#fff;color:#6366f1;border:none}</style></head><body><header><div class="logo">◆ FlowApp</div><nav>Fitur | Harga | Docs</nav><button class="btn">Coba Gratis</button></header><div class="hero"><h1>Kelola Proyek Lebih Efisien</h1><p>Platform all-in-one untuk tim modern.</p></div><div class="pricing"><div class="plan"><h3>Starter</h3><div class="price">Rp 0<span>/bln</span></div><ul><li>3 proyek</li><li>5 anggota</li></ul><button>Mulai</button></div><div class="plan featured"><h3>Pro</h3><div class="price">Rp 99K<span>/bln</span></div><ul><li>Proyek unlimited</li><li>20 anggota</li><li>Priority support</li></ul><button>Pilih Pro</button></div><div class="plan"><h3>Enterprise</h3><div class="price">Rp 299K<span>/bln</span></div><ul><li>Semua fitur Pro</li><li>Unlimited</li></ul><button>Hubungi</button></div></div></body></html>`,
+    prompt:`Buatkan template website SaaS:\n\nSTRUKTUR:\n- Navbar, Hero, Pricing 3 kolom, Fitur, Testimoni, Footer\n\nDESAIN:\n- Warna utama: indigo (#6366f1)\n- Light mode: #f8fafc\n- Featured card dengan shadow\n\nTEKNOLOGI: HTML, CSS, JavaScript`
+  },
+  {
+    id:9,name:"Blog",category:"Blog",
+    description:"Template blog minimalis dengan daftar artikel, kategori, pencarian, dan halaman detail postingan.",
+    thumbnail:"https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"jarang",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:Georgia,serif}body{background:#fafaf9;color:#1c1917}header{padding:24px 40px;display:flex;justify-content:space-between;border-bottom:1px solid #e7e5e4;font-family:system-ui}.logo{font-weight:800;font-size:1.5rem}.hero{text-align:center;padding:60px 20px 40px}.hero h1{font-size:2.5rem;margin-bottom:12px}.hero p{color:#78716c;font-family:system-ui}.posts{max-width:800px;margin:0 auto;padding:20px}.post{display:grid;grid-template-columns:200px 1fr;gap:24px;padding:24px 0;border-bottom:1px solid #e7e5e4}.post img{width:100%;height:140px;object-fit:cover;border-radius:10px}.post .meta{font-size:.8rem;color:#78716c;font-family:system-ui;text-transform:uppercase;margin-bottom:8px}.post h2{font-size:1.3rem;margin-bottom:8px}.post p{color:#57534e;font-size:.95rem}</style></head><body><header><div class="logo">The Journal</div><nav>Home | Artikel | Kategori</nav></header><div class="hero"><h1>Cerita & Ide</h1><p>Kumpulan tulisan tentang teknologi, desain, dan kehidupan</p></div><div class="posts"><div class="post"><img src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400"><div><div class="meta">Teknologi · 5 menit</div><h2>Masa Depan Web Development 2025</h2><p>Perkembangan teknologi web semakin cepat...</p></div></div><div class="post"><img src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400"><div><div class="meta">Desain · 3 menit</div><h2>Prinsip Desain Minimalis</h2><p>Minimalis bukan berarti kosong...</p></div></div></div></body></html>`,
+    prompt:`Buatkan template blog minimalis:\n\nSTRUKTUR:\n- Navbar, Hero, Daftar artikel grid 2 kolom\n- Sidebar, Detail artikel, Footer\n\nDESAIN:\n- Light: #fafaf9\n- Font: Georgia (serif) + system-ui\n\nTEKNOLOGI: HTML, CSS, JavaScript`
+  },
+  {
+    id:10,name:"Agency",category:"Agency",
+    description:"Template website agency kreatif dengan showcase project, tim, layanan, dan form kontak.",
+    thumbnail:"https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    technologies:["HTML","CSS","JavaScript"],status:"bagus",previewUrl:"",
+    preview:`<!DOCTYPE html><html><head><style>*{margin:0;box-sizing:border-box;font-family:system-ui,sans-serif}body{background:#0a0a0f;color:#fff}header{padding:24px 40px;display:flex;justify-content:space-between}.logo{font-weight:800;font-size:1.4rem}.hero{padding:80px 40px;max-width:1200px;margin:0 auto}.hero h1{font-size:4rem;font-weight:800;line-height:1.05;max-width:800px;margin-bottom:24px}.hero h1 span{background:linear-gradient(135deg,#a855f7,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.hero p{color:#94a3b8;max-width:500px;font-size:1.1rem}.projects{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:1200px;margin:60px auto;padding:0 40px}.project{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:16/10}.project img{width:100%;height:100%;object-fit:cover}.project .info{position:absolute;bottom:0;left:0;right:0;padding:24px;background:linear-gradient(to top,rgba(10,10,15,.95),transparent)}.project .cat{color:#a855f7;font-size:.8rem;font-weight:700;text-transform:uppercase}</style></head><body><header><div class="logo">✦ StudioX</div><nav>Work | Services | About | Contact</nav></header><div class="hero"><h1>Kami Ciptakan <span>Pengalaman Digital</span> yang Berkesan</h1><p>Agency kreatif yang membantu brand tumbuh.</p></div><div class="projects"><div class="project"><img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600"><div class="info"><div class="cat">Web Design</div><h3>Fintech Dashboard</h3></div></div><div class="project"><img src="https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=600"><div class="info"><div class="cat">Branding</div><h3>Eco Brand Identity</h3></div></div></div></body></html>`,
+    prompt:`Buatkan template website agency kreatif:\n\nSTRUKTUR:\n- Navbar, Hero, Project showcase grid 2 kolom\n- Layanan, Tim, Form kontak\n\nDESAIN:\n- Dark: #0a0a0f\n- Aksen gradient purple-blue\n- Project card hover zoom\n\nTEKNOLOGI: HTML, CSS, JavaScript`
+  }
+];
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let templates = [];
+let categories = [];
+let currentFilter = 'Semua';
+let currentSearch = '';
+let currentPromptTemplate = null;
+let currentDevice = 'desktop';
+let currentPreviewTemplate = null;
+let editingId = null;
+let currentThumbData = null;
+let thumbTab = 'upload';
+
+/* ================================================================
+   STORAGE
+   ================================================================ */
+function loadData(){
+  try{
+    const t = localStorage.getItem('th_templates');
+    const c = localStorage.getItem('th_categories');
+    templates = t ? JSON.parse(t) : JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    categories = c ? JSON.parse(c) : [...DEFAULT_CATEGORIES];
+  }catch(e){
+    templates = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    categories = [...DEFAULT_CATEGORIES];
+  }
+  templates.forEach(t=>{ if(!t.status) t.status='normal'; });
+}
+
+/* ================================================================
+   FIREBASE REALTIME SYNC
+   - loadData() di atas tetap dipakai untuk render instan (cache lokal).
+   - initFirebaseSync() lalu menyambungkan ke Realtime Database:
+     setiap perubahan (dari perangkat manapun) langsung memicu render ulang.
+   - suppressNextSave mencegah loop: saat data datang DARI Firebase,
+     kita tidak perlu mengirim ulang data itu KE Firebase.
+   ================================================================ */
+let firebaseConnected = false;
+let suppressNextSave = false;
+
+function initFirebaseSync(){
+  if(!window.firebaseDB){
+    // module Firebase belum selesai dimuat, coba lagi sebentar
+    setTimeout(initFirebaseSync, 150);
+    return;
+  }
+  window.firebaseDB.listen(data=>{
+    if(data && Array.isArray(data.templates)){
+      suppressNextSave = true;
+      templates = data.templates;
+      categories = Array.isArray(data.categories) && data.categories.length ? data.categories : [...DEFAULT_CATEGORIES];
+      templates.forEach(t=>{ if(!t.status) t.status='normal'; });
+      try{
+        localStorage.setItem('th_templates', JSON.stringify(templates));
+        localStorage.setItem('th_categories', JSON.stringify(categories));
+      }catch(e){}
+      renderFilters();
+      renderTemplates();
+      updateStats();
+      if(document.getElementById('adminScreen') && document.getElementById('adminScreen').classList.contains('open')){
+        renderAdminAll();
+      }
+      if(!firebaseConnected) showToast('Terhubung ke database realtime.','success');
+    } else if(!firebaseConnected){
+      // Database masih kosong -> kirim data lokal/default sebagai data awal
+      window.firebaseDB.save({templates, categories}).catch(err=>console.warn('Gagal inisialisasi data Firebase:', err));
+    }
+    firebaseConnected = true;
+  });
+}
+
+function saveData(){
+  try{
+    localStorage.setItem('th_templates', JSON.stringify(templates));
+    localStorage.setItem('th_categories', JSON.stringify(categories));
+  }catch(e){ 
+    console.warn('Gagal simpan:',e);
+    showToast('Storage penuh. Gambar terlalu besar.','error');
+  }
+  if(suppressNextSave){ suppressNextSave = false; return; }
+  if(window.firebaseDB){
+    window.firebaseDB.save({templates, categories}).catch(err=>{
+      console.warn('Gagal sinkronisasi ke Firebase:', err);
+      showToast('Gagal sinkronisasi ke database realtime.','error');
+    });
+  }
+}
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+function showToast(msg, type='success'){
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icons = {success:'✅',error:'❌',info:'ℹ️'};
+  el.innerHTML = `<span class="ic">${icons[type]||icons.info}</span> ${msg}`;
+  wrap.appendChild(el);
+  setTimeout(()=>{
+    el.style.transition='all .3s ease';
+    el.style.opacity='0';
+    el.style.transform='translateY(20px)';
+    setTimeout(()=>el.remove(),300);
+  }, 2500);
+}
+
+/* ================================================================
+   THUMBNAIL AUTO-GENERATE
+   ================================================================ */
+function makeThumb(name){
+  const colors = ['a855f7','3b82f6','6366f1','8b5cf6','06b6d4','ec4899','f59e0b','10b981'];
+  const c1 = colors[name.length % colors.length];
+  const c2 = colors[(name.length+3) % colors.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#${c1}"/><stop offset="1" stop-color="#${c2}"/>
+    </linearGradient></defs>
+    <rect width="400" height="250" fill="#0a0a0f"/>
+    <rect x="0" y="0" width="400" height="250" fill="url(#g)" opacity="0.2"/>
+    <text x="200" y="125" font-family="system-ui,sans-serif" font-size="26" font-weight="800" fill="#fff" text-anchor="middle" dominant-baseline="middle">${escapeXml(name)}</text>
+    <text x="200" y="160" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,.5)" text-anchor="middle">TemplateHub</text>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+function escapeXml(s){return String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));}
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ================================================================
+   IMAGE COMPRESS + CONVERT TO BASE64
+   ================================================================ */
+function compressImage(file, maxWidth = 1200, quality = 0.85){
+  return new Promise((resolve, reject)=>{
+    if(!file.type.startsWith('image/')) return reject(new Error('Bukan gambar'));
+    if(file.size > 5 * 1024 * 1024) return reject(new Error('File terlalu besar (maks 5MB)'));
+    
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if(width > maxWidth){
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Gagal load gambar'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Gagal baca file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ================================================================
+   THUMB TAB SWITCHER
+   ================================================================ */
+function switchThumbTab(tab){
+  thumbTab = tab;
+  document.getElementById('tabUploadBtn').classList.toggle('active', tab==='upload');
+  document.getElementById('tabGalleryBtn').classList.toggle('active', tab==='gallery');
+  document.getElementById('tabAutoBtn').classList.toggle('active', tab==='auto');
+  document.getElementById('thumbTab-upload').style.display = tab==='upload'?'block':'none';
+  document.getElementById('thumbTab-gallery').style.display = tab==='gallery'?'block':'none';
+  document.getElementById('thumbTab-auto').style.display = tab==='auto'?'block':'none';
+  if(tab==='gallery') renderGalleryPicker();
+}
+
+/* ================================================================
+   UPLOAD FILE HANDLER
+   ================================================================ */
+async function handleThumbFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const zone = document.getElementById('uploadZone');
+  const orig = zone.innerHTML;
+  zone.innerHTML = `<div style="padding:20px"><div style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px"></div><div style="font-size:.85rem;color:var(--text-dim)">Mengompres gambar...</div></div>`;
+  
+  try{
+    const base64 = await compressImage(file, 1200, 0.82);
+    currentThumbData = base64;
+    document.getElementById('fThumb').value = base64;
+    showThumbPreview(base64, file.name);
+    zone.innerHTML = orig;
+    showToast('Gambar berhasil di-upload.','success');
+  }catch(err){
+    zone.innerHTML = orig;
+    showToast(err.message,'error');
+  }
+  event.target.value = '';
+}
+
+/* ================================================================
+   DRAG & DROP
+   ================================================================ */
+function initDragDrop(){
+  const zone = document.getElementById('uploadZone');
+  if(!zone) return;
+  
+  ['dragenter','dragover'].forEach(evt=>{
+    zone.addEventListener(evt, e=>{
+      e.preventDefault(); e.stopPropagation();
+      zone.classList.add('dragover');
+    });
+  });
+  ['dragleave','drop'].forEach(evt=>{
+    zone.addEventListener(evt, e=>{
+      e.preventDefault(); e.stopPropagation();
+      zone.classList.remove('dragover');
+    });
+  });
+  zone.addEventListener('drop', async e=>{
+    const file = e.dataTransfer.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      showToast('File harus gambar!','error'); return;
+    }
+    const zoneOrig = zone.innerHTML;
+    zone.innerHTML = `<div style="padding:20px"><div style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px"></div><div style="font-size:.85rem;color:var(--text-dim)">Memproses...</div></div>`;
+    try{
+      const base64 = await compressImage(file, 1200, 0.82);
+      currentThumbData = base64;
+      document.getElementById('fThumb').value = base64;
+      showThumbPreview(base64, file.name);
+      showToast('Gambar berhasil di-upload.','success');
+    }catch(err){
+      showToast(err.message,'error');
+    }
+    zone.innerHTML = zoneOrig;
+    // re-attach event because innerHTML replaced
+    initDragDrop();
+  });
+}
+
+/* ================================================================
+   SHOW / CLEAR / AUTO THUMB
+   ================================================================ */
+function showThumbPreview(src, name){
+  const prev = document.getElementById('thumbPreview');
+  const img = document.getElementById('thumbPreviewImg');
+  img.src = src;
+  prev.classList.add('show');
+  document.getElementById('thumbInfoName').textContent = name || 'thumbnail.jpg';
+  const sizeKB = (src.length / 1024 / 1.37).toFixed(1);
+  document.getElementById('thumbInfoSize').textContent = sizeKB + ' KB';
+}
+function clearThumb(){
+  currentThumbData = null;
+  document.getElementById('fThumb').value = '';
+  document.getElementById('thumbPreview').classList.remove('show');
+  document.getElementById('thumbPreviewImg').src = '';
+  showToast('Thumbnail dihapus.','info');
+}
+function applyAutoThumb(){
+  const name = document.getElementById('fName').value.trim() || 'Template';
+  const svg = makeThumb(name);
+  currentThumbData = svg;
+  document.getElementById('fThumb').value = svg;
+  showThumbPreview(svg, 'auto-' + name.toLowerCase().replace(/\s+/g,'-') + '.svg');
+  showToast('Thumbnail auto-generate dibuat.','success');
+}
+
+/* ================================================================
+   GALLERY PICKER (dari templates yang sudah ada)
+   ================================================================ */
+function renderGalleryPicker(){
+  const el = document.getElementById('galleryPicker');
+  const thumbs = templates
+    .filter(t=>t.thumbnail && t.thumbnail.startsWith('data:image'))
+    .slice(0, 40);
+  
+  if(!thumbs.length){
+    el.innerHTML = `<div class="gp-empty">Belum ada gambar di galeri. Upload dulu lewat tab Upload.</div>`;
+    return;
+  }
+  el.innerHTML = thumbs.map((t,i)=>`
+    <div class="gallery-item" onclick="pickGallery(${t.id})" title="${escapeHtml(t.name)}">
+      <img src="${t.thumbnail}" alt="">
+      <button class="del" onclick="event.stopPropagation();deleteFromGallery(${t.id})" title="Hapus dari galeri">✕</button>
+    </div>
+  `).join('');
+}
+function pickGallery(id){
+  const t = templates.find(x=>x.id===id);
+  if(!t || !t.thumbnail) return;
+  currentThumbData = t.thumbnail;
+  document.getElementById('fThumb').value = t.thumbnail;
+  showThumbPreview(t.thumbnail, t.name + ' (dari galeri)');
+  showToast('Thumbnail dipilih dari galeri.','success');
+}
+function deleteFromGallery(id){
+  const t = templates.find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Hapus "${t.name}" dari galeri? (Template utama tidak terhapus)`)) return;
+  // Cukup clear thumbnail — user bisa re-upload. Kalau mau benar-benar hapus template, pakai tombol di tab Kelola.
+  showToast('Untuk hapus permanen, gunakan tombol 🗑️ di daftar template.','info');
+}
+
+/* ================================================================
+   FILTER
+   ================================================================ */
+function renderFilters(){
+  const row = document.getElementById('filterRow');
+  const all = ['Semua', ...categories];
+  row.innerHTML = all.map(c=>{
+    const active = c === currentFilter ? 'active' : '';
+    return `<button class="chip ${active}" onclick="setFilter('${c.replace(/'/g,"\\'")}')">${c}</button>`;
+  }).join('');
+}
+function setFilter(cat){ currentFilter = cat; renderFilters(); renderTemplates(); }
+
+/* ================================================================
+   RENDER TEMPLATES
+   ================================================================ */
+function renderTemplates(){
+  const grid = document.getElementById('templateGrid');
+  const q = currentSearch.toLowerCase().trim();
+  let list = templates.filter(t=>{
+    const matchCat = currentFilter === 'Semua' || t.category === currentFilter;
+    if(!matchCat) return false;
+    if(!q) return true;
+    const hay = [t.name,t.category,t.description,...(t.technologies||[])].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+
+  const info = document.getElementById('resultInfo');
+  info.textContent = q 
+    ? `Menampilkan ${list.length} hasil untuk "${currentSearch}"`
+    : (currentFilter !== 'Semua' ? `Kategori: ${currentFilter} (${list.length} template)` : `Menampilkan semua template (${list.length})`);
+
+  if(!list.length){
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><h3>Template tidak ditemukan.</h3><p>Coba kata kunci atau kategori lain.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((t,i)=>cardHTML(t,i)).join('');
+}
+
+function cardHTML(t, i){
+  const statusBadge = t.status && t.status !== 'normal' ? 
+    `<div class="status-badge status-${t.status}">${
+      t.status==='favorit'?'⭐ Paling Disukai':
+      t.status==='jarang'?'📉 Jarang Dipakai':
+      t.status==='bagus'?'🔥 Sangat Bagus':''}</div>` : '';
+  const thumb = t.thumbnail || makeThumb(t.name);
+  return `<div class="card" style="animation-delay:${i*0.04}s" onclick="openDetail(${t.id})">
+    <div class="card-thumb">
+      <img src="${thumb}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.src='${makeThumb(t.name)}'">
+      <div class="card-badge">${escapeHtml(t.category)}</div>
+      ${statusBadge}
+    </div>
+    <div class="card-body">
+      <h3 class="card-title">${escapeHtml(t.name)}</h3>
+      <p class="card-desc">${escapeHtml(t.description)}</p>
+      <div class="card-tags">${(t.technologies||[]).map(x=>`<span class="tag">${escapeHtml(x)}</span>`).join('')}</div>
+      <div class="card-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-primary" onclick="openPreview(${t.id})">👁 Preview</button>
+        <button class="btn btn-ghost" onclick="openPrompt(${t.id})">📝 Lihat Prompt</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   SEARCH
+   ================================================================ */
+function performSearch(){
+  const v = document.getElementById('heroSearch').value.trim();
+  checkAdminCode(v);
+  currentSearch = v;
+  document.getElementById('navSearch').value = v;
+  renderTemplates();
+  if(v) scrollToTemplates();
+}
+function onNavSearch(v){
+  checkAdminCode(v);
+  currentSearch = v;
+  document.getElementById('heroSearch').value = v;
+  renderTemplates();
+}
+function checkAdminCode(v){
+  if(v.toUpperCase() === 'ADMINSUKASUKA'){
+    document.getElementById('navSearch').value = '';
+    document.getElementById('heroSearch').value = '';
+    currentSearch = '';
+    openAdmin();
+    showToast('Selamat datang di Admin Panel!','success');
+  }
+}
+
+/* ================================================================
+   MODAL PROMPT
+   ================================================================ */
+function openPrompt(id){
+  const t = templates.find(x=>x.id===id);
+  if(!t) return;
+  currentPromptTemplate = t;
+  document.getElementById('pmTitle').textContent = t.name;
+  document.getElementById('pmSub').textContent = t.category;
+  document.getElementById('pmDesc').textContent = t.description;
+  document.getElementById('pmPrompt').textContent = t.prompt || '(Prompt belum tersedia)';
+  document.getElementById('pmTech').innerHTML = (t.technologies||[]).map(x=>`<span class="tech-pill">${escapeHtml(x)}</span>`).join('');
+  document.getElementById('pmCopyBtn').textContent = '📋 Salin Prompt';
+  document.getElementById('promptModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+async function copyPromptFromModal(){
+  if(!currentPromptTemplate) return;
+  await doCopy(currentPromptTemplate.prompt, document.getElementById('pmCopyBtn'));
+}
+
+/* ================================================================
+   COPY
+   ================================================================ */
+async function doCopy(text, btn){
+  if(!text){ showToast('Prompt kosong.','error'); return; }
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    if(btn){
+      const orig = btn.textContent;
+      btn.textContent = '✅ Tersalin!';
+      setTimeout(()=>{btn.textContent = orig;}, 2000);
+    }
+    showToast('Prompt berhasil disalin!','success');
+  }catch(e){
+    showToast('Gagal menyalin prompt.','error');
+  }
+}
+
+/* ================================================================
+   PREVIEW
+   ================================================================ */
+function openPreview(id){
+  const t = templates.find(x=>x.id===id);
+  if(!t) return;
+  currentPreviewTemplate = t;
+  document.getElementById('pvTitle').textContent = 'Preview — ' + t.name;
+  renderPreviewFrame(t);
+  setDevice('desktop');
+  document.getElementById('previewScreen').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function renderPreviewFrame(t){
+  const frame = document.getElementById('previewFrame');
+  frame.className = 'preview-frame ' + (currentDevice==='desktop'?'':currentDevice);
+  if(t.previewUrl){
+    frame.innerHTML = `<iframe src="${escapeHtml(t.previewUrl)}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy"></iframe>`;
+  } else if(t.preview && t.preview.trim()){
+    frame.innerHTML = `<iframe srcdoc="${escapeHtml(t.preview)}" sandbox="allow-scripts allow-same-origin allow-forms" loading="lazy"></iframe>`;
+  } else {
+    frame.innerHTML = `<div class="fallback"><div><div class="big">🖼️</div><h3>Preview tidak tersedia</h3><p>Template ini belum memiliki file preview HTML atau link website.</p></div></div>`;
+  }
+}
+function setDevice(d){
+  currentDevice = d;
+  document.querySelectorAll('.device-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.device===d);
+  });
+  const frame = document.getElementById('previewFrame');
+  frame.classList.remove('desktop','tablet','mobile');
+  if(d!=='desktop') frame.classList.add(d);
+}
+function closePreview(){
+  document.getElementById('previewScreen').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('previewFrame').innerHTML = '';
+}
+function openPreviewFullscreen(){
+  const frame = document.getElementById('previewFrame');
+  const iframe = frame.querySelector('iframe');
+  if(iframe && iframe.requestFullscreen){
+    iframe.requestFullscreen().catch(()=>showToast('Fullscreen tidak didukung.','error'));
+  } else if(frame.requestFullscreen){
+    frame.requestFullscreen().catch(()=>showToast('Fullscreen tidak didukung.','error'));
+  } else {
+    showToast('Fullscreen tidak didukung browser ini.','error');
+  }
+}
+
+/* ================================================================
+   DETAIL
+   ================================================================ */
+function openDetail(id){
+  const t = templates.find(x=>x.id===id);
+  if(!t) return;
+  const thumb = t.thumbnail || makeThumb(t.name);
+  const statusLabel = t.status==='favorit'?'⭐ Paling Disukai':t.status==='jarang'?'📉 Jarang Dipakai':t.status==='bagus'?'🔥 Sangat Bagus':'Normal';
+  document.getElementById('dtTitle').textContent = t.name;
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-hero">
+      <img src="${thumb}" alt="${escapeHtml(t.name)}" onerror="this.src='${makeThumb(t.name)}'">
+      <div class="overlay"><div><h1>${escapeHtml(t.name)}</h1><div style="color:#a855f7;font-weight:600;font-size:.9rem;margin-top:6px">${escapeHtml(t.category)} • ${statusLabel}</div></div></div>
+    </div>
+    <div class="detail-grid">
+      <div>
+        <div class="detail-card"><h3>📄 Deskripsi</h3><p>${escapeHtml(t.description)}</p></div>
+        <div class="detail-card"><h3>✨ Fitur</h3>
+          <ul class="feature-list">
+            ${(t.technologies||[]).map(x=>`<li>Dibangun dengan ${escapeHtml(x)}</li>`).join('')}
+            <li>Responsive di semua perangkat</li>
+            <li>Prompt lengkap siap pakai</li>
+            <li>Preview langsung di browser</li>
+          </ul>
+        </div>
+        <div class="detail-card"><h3>📝 Prompt</h3><div class="prompt-box" style="max-height:220px">${escapeHtml(t.prompt||'(Belum ada prompt)')}</div></div>
+      </div>
+      <div>
+        <div class="detail-card"><h3>ℹ️ Informasi</h3>
+          <div class="meta-row"><span class="k">Kategori</span><span class="v">${escapeHtml(t.category)}</span></div>
+          <div class="meta-row"><span class="k">Status</span><span class="v">${statusLabel}</span></div>
+          <div class="meta-row"><span class="k">Teknologi</span><span class="v">${(t.technologies||[]).join(', ')}</span></div>
+          <div class="meta-row"><span class="k">Preview</span><span class="v">${t.previewUrl?'Link Website':(t.preview?'HTML Embedded':'Tidak tersedia')}</span></div>
+        </div>
+        <div class="detail-card"><h3>🎯 Aksi</h3>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-primary" onclick="openPreview(${t.id})">👁 Preview Website</button>
+            <button class="btn btn-ghost" onclick="openPrompt(${t.id})">📝 Lihat Prompt</button>
+            <button class="btn btn-ghost" onclick="copyFromDetail(${t.id}, this)">📋 Salin Prompt</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('detailScreen').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDetail(){
+  document.getElementById('detailScreen').classList.remove('open');
+  document.body.style.overflow = '';
+}
+async function copyFromDetail(id, btn){
+  const t = templates.find(x=>x.id===id);
+  if(t) await doCopy(t.prompt, btn);
+}
+
+/* ================================================================
+   NAV
+   ================================================================ */
+function goHome(){ window.scrollTo({top:0,behavior:'smooth'}); closeAll(); }
+function scrollToTemplates(){ document.getElementById('templates').scrollIntoView({behavior:'smooth'}); }
+function scrollToFilter(){
+  document.getElementById('templates').scrollIntoView({behavior:'smooth'});
+  setTimeout(()=>document.getElementById('filterRow').scrollIntoView({behavior:'smooth',block:'center'}),300);
+}
+function toggleMobileMenu(){ document.getElementById('mobileMenu').classList.toggle('open'); }
+function closeAll(){
+  closePreview(); closeDetail(); closeModal('promptModal');
+  document.getElementById('adminScreen').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ================================================================
+   ADMIN
+   ================================================================ */
+function openAdmin(){
+  renderAdminAll();
+  document.getElementById('adminScreen').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeAdmin(){
+  document.getElementById('adminScreen').classList.remove('open');
+  document.body.style.overflow = '';
+  resetForm();
+  renderTemplates();
+}
+function switchAdminTab(tab, ev){
+  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
+  if(ev) ev.target.classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+  if(tab==='status') renderAdminStatus();
+  if(tab==='categories') renderCategories();
+  if(tab==='templates') renderAdminTemplates();
+}
+
+function fillCategorySelect(){
+  const sel = document.getElementById('fCategory');
+  sel.innerHTML = categories.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+}
+
+function saveTemplate(e){
+  e.preventDefault();
+  const name = document.getElementById('fName').value.trim();
+  const category = document.getElementById('fCategory').value;
+  const desc = document.getElementById('fDesc').value.trim();
+  const previewUrl = document.getElementById('fPreviewUrl').value.trim();
+  const previewHtml = document.getElementById('fPreviewHtml').value;
+  const prompt = document.getElementById('fPrompt').value.trim();
+  const techStr = document.getElementById('fTech').value.trim();
+  const thumb = currentThumbData || document.getElementById('fThumb').value || '';
+
+  if(!name || !category || !desc || !prompt){
+    showToast('Lengkapi field wajib!','error'); return;
+  }
+
+  const technologies = techStr ? techStr.split(',').map(s=>s.trim()).filter(Boolean) : ['HTML','CSS','JavaScript'];
+
+  if(editingId){
+    const t = templates.find(x=>x.id===editingId);
+    if(t){
+      Object.assign(t,{name,category,description:desc,previewUrl,preview:previewHtml,prompt,technologies,thumbnail:thumb||t.thumbnail||makeThumb(name)});
+      showToast('Template berhasil diperbarui!','success');
+    }
+    editingId = null;
+  } else {
+    const newId = templates.length ? Math.max(...templates.map(x=>x.id))+1 : 1;
+    templates.push({
+      id:newId, name, category, description:desc,
+      thumbnail: thumb || makeThumb(name),
+      technologies, status:'normal', previewUrl, preview:previewHtml, prompt
+    });
+    showToast('Template berhasil ditambahkan!','success');
+  }
+  saveData();
+  resetForm();
+  renderAdminAll();
+  renderFilters();
+  renderTemplates();
+  updateStats();
+}
+
+function resetForm(){
+  document.getElementById('templateForm').reset();
+  document.getElementById('editId').value = '';
+  document.getElementById('fTech').value = 'HTML, CSS, JavaScript';
+  document.getElementById('fThumb').value = '';
+  document.getElementById('formTitle').textContent = '➕ Tambah Template Baru';
+  document.getElementById('submitBtn').textContent = '💾 Simpan Template';
+  editingId = null;
+  currentThumbData = null;
+  document.getElementById('thumbPreview').classList.remove('show');
+  document.getElementById('thumbPreviewImg').src = '';
+  switchThumbTab('upload');
+  fillCategorySelect();
+}
+
+function editTemplate(id){
+  const t = templates.find(x=>x.id===id);
+  if(!t) return;
+  editingId = id;
+  document.getElementById('fName').value = t.name;
+  document.getElementById('fCategory').value = t.category;
+  document.getElementById('fDesc').value = t.description;
+  document.getElementById('fPreviewUrl').value = t.previewUrl || '';
+  document.getElementById('fPreviewHtml').value = t.preview || '';
+  document.getElementById('fPrompt').value = t.prompt || '';
+  document.getElementById('fTech').value = (t.technologies||[]).join(', ');
+  document.getElementById('fThumb').value = t.thumbnail || '';
+  
+  if(t.thumbnail){
+    currentThumbData = t.thumbnail;
+    showThumbPreview(t.thumbnail, t.name + '.jpg');
+  } else {
+    currentThumbData = null;
+    document.getElementById('thumbPreview').classList.remove('show');
+  }
+  
+  document.getElementById('formTitle').textContent = '✏️ Edit Template: ' + t.name;
+  document.getElementById('submitBtn').textContent = '💾 Simpan Perubahan';
+  
+  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('.admin-tab').classList.add('active');
+  document.getElementById('panel-templates').classList.add('active');
+  
+  document.getElementById('adminScreen').scrollTop = 0;
+  showToast('Mode edit: ' + t.name,'info');
+}
+
+function deleteTemplate(id){
+  const t = templates.find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Hapus template "${t.name}"?`)) return;
+  templates = templates.filter(x=>x.id!==id);
+  saveData();
+  renderAdminAll();
+  renderTemplates();
+  renderFilters();
+  updateStats();
+  showToast('Template dihapus.','success');
+}
+
+function renderAdminAll(){
+  fillCategorySelect();
+  renderAdminTemplates();
+  renderAdminStatus();
+  renderCategories();
+}
+
+function renderAdminTemplates(){
+  const el = document.getElementById('adminTemplateList');
+  if(!templates.length){
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><h3>Belum ada template</h3></div>`;
+    return;
+  }
+  el.innerHTML = templates.map(t=>adminRowHTML(t)).join('');
+}
+function renderAdminStatus(){
+  const el = document.getElementById('adminStatusList');
+  if(!templates.length){
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⭐</div><h3>Belum ada template</h3></div>`;
+    return;
+  }
+  el.innerHTML = templates.map(t=>adminRowHTML(t, true)).join('');
+}
+function adminRowHTML(t, withStatus){
+  const thumb = t.thumbnail || makeThumb(t.name);
+  const statusOpts = [
+    {v:'normal',l:'— Normal'},
+    {v:'favorit',l:'⭐ Paling Disukai'},
+    {v:'jarang',l:'📉 Jarang Dipakai'},
+    {v:'bagus',l:'🔥 Sangat Bagus'}
+  ].map(o=>`<option value="${o.v}" ${t.status===o.v?'selected':''}>${o.l}</option>`).join('');
+  return `<div class="admin-row">
+    <img class="thumb" src="${thumb}" onerror="this.src='${makeThumb(t.name)}'">
+    <div><div class="name">${escapeHtml(t.name)}</div><div style="font-size:.75rem;color:var(--text-faint)">${(t.technologies||[]).join(' · ')}</div></div>
+    <span class="cat">${escapeHtml(t.category)}</span>
+    <select class="status-select" onchange="setStatus(${t.id}, this.value)">${statusOpts}</select>
+    <div class="actions">
+      <button class="icon-btn edit" title="Edit" onclick="editTemplate(${t.id})">✏️</button>
+      <button class="icon-btn danger" title="Hapus" onclick="deleteTemplate(${t.id})">🗑️</button>
+    </div>
+  </div>`;
+}
+function setStatus(id, status){
+  const t = templates.find(x=>x.id===id);
+  if(!t) return;
+  t.status = status;
+  saveData();
+  renderTemplates();
+  showToast(`Status "${t.name}" diubah.`,'success');
+  renderAdminTemplates();
+  renderAdminStatus();
+}
+
+function renderCategories(){
+  const el = document.getElementById('catList');
+  el.innerHTML = categories.map(c=>{
+    const count = templates.filter(t=>t.category===c).length;
+    return `<div class="cat-item">
+      <span class="cat-name">${escapeHtml(c)}</span>
+      <span class="cat-count">${count} template</span>
+      <button class="icon-btn danger" onclick="deleteCategory('${escapeHtml(c).replace(/'/g,"\\'")}')" title="Hapus">🗑️</button>
+    </div>`;
+  }).join('') || `<div class="empty"><div class="empty-icon">🏷️</div><h3>Belum ada kategori</h3></div>`;
+}
+function addCategory(){
+  const v = document.getElementById('newCatInput').value.trim();
+  if(!v){ showToast('Masukkan nama kategori.','error'); return; }
+  if(categories.includes(v)){ showToast('Kategori sudah ada.','error'); return; }
+  categories.push(v);
+  document.getElementById('newCatInput').value = '';
+  saveData();
+  renderCategories();
+  renderFilters();
+  fillCategorySelect();
+  showToast('Kategori "'+v+'" ditambahkan.','success');
+}
+function deleteCategory(c){
+  const count = templates.filter(t=>t.category===c).length;
+  if(count>0){
+    if(!confirm(`Kategori "${c}" masih dipakai ${count} template. Hapus tetap?`)) return;
+    templates.forEach(t=>{ if(t.category===c) t.category='Lainnya'; });
+    if(!categories.includes('Lainnya')) categories.push('Lainnya');
+  }
+  categories = categories.filter(x=>x!==c);
+  saveData();
+  renderCategories();
+  renderFilters();
+  fillCategorySelect();
+  renderTemplates();
+  renderAdminAll();
+  showToast('Kategori dihapus.','success');
+}
+
+/* ================================================================
+   STATS
+   ================================================================ */
+function updateStats(){
+  document.getElementById('statCount').textContent = templates.length + '+';
+  document.getElementById('statCat').textContent = categories.length;
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+function init(){
+  loadData();
+  renderFilters();
+  renderTemplates();
+  updateStats();
+  initDragDrop();
+  initFirebaseSync();
+
+  document.getElementById('heroSearch').addEventListener('keydown', e=>{
+    if(e.key==='Enter') performSearch();
+  });
+  document.getElementById('navSearch').addEventListener('input', e=>{
+    onNavSearch(e.target.value);
+  });
+  document.getElementById('heroSearch').addEventListener('input', e=>{
+    checkAdminCode(e.target.value);
+    currentSearch = e.target.value;
+    document.getElementById('navSearch').value = e.target.value;
+    renderTemplates();
+  });
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){
+      if(document.getElementById('previewScreen').classList.contains('open')) closePreview();
+      else if(document.getElementById('detailScreen').classList.contains('open')) closeDetail();
+      else if(document.getElementById('promptModal').classList.contains('open')) closeModal('promptModal');
+      else if(document.getElementById('adminScreen').classList.contains('open')) closeAdmin();
+    }
+  });
+
+  document.getElementById('promptModal').addEventListener('click', e=>{
+    if(e.target.id==='promptModal') closeModal('promptModal');
+  });
+
+  window.addEventListener('resize', ()=>{
+    if(window.innerWidth>900) document.getElementById('mobileMenu').classList.remove('open');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
